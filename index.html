@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SUCO · Color by Number</title>
+<!-- El SDK de YouTube Playables se carga antes que cualquier código del juego (requisito de integración 1). -->
+<script src="https://www.youtube.com/game_api/v1"></script>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<!-- Pantalla de carga: se muestra mientras se llama a firstFrameReady y se cargan la partida y las portadas. -->
+<div id="carga" class="carga" role="status" aria-label="Loading">
+  <img class="carga-logo" src="logo.png" alt="SUCO" width="720" height="592">
+  <div class="carga-barra" aria-hidden="true"><i></i></div>
+</div>
+
+<main id="app" hidden>
+  <!-- Biblioteca -->
+  <section id="v-biblioteca" class="vista">
+    <header class="cabecera">
+      <img class="logo" src="logo.png" alt="SUCO" width="720" height="592">
+      <div class="cabecera-texto">
+        <h1 data-t="titulo"></h1>
+        <p class="puntos" id="puntos"></p>
+      </div>
+      <button type="button" class="btn-icono" data-acc="ayuda" data-t-aria="como_jugar">?</button>
+    </header>
+    <p class="aviso-fin" id="aviso-fin" hidden></p>
+    <div class="rejilla-libros" id="rejilla-libros"></div>
+  </section>
+
+  <!-- Libro -->
+  <section id="v-libro" class="vista" hidden>
+    <header class="cabecera cabecera-libro">
+      <button type="button" class="btn-volver" data-acc="biblioteca"><span aria-hidden="true">‹</span> <span data-t="volver"></span></button>
+      <h1 id="libro-titulo"></h1>
+      <p class="sub" id="libro-sub"></p>
+    </header>
+    <div class="rejilla-paginas" id="rejilla-paginas"></div>
+  </section>
+
+  <!-- Juego -->
+  <section id="v-juego" class="vista juego" hidden>
+    <header class="barra">
+      <button type="button" class="btn-icono" data-acc="salir-juego" data-t-aria="volver"><span aria-hidden="true">‹</span></button>
+      <div class="barra-titulo"><strong id="juego-titulo"></strong><span id="juego-sub"></span></div>
+      <div class="progreso" aria-hidden="true"><i id="progreso-barra"></i></div>
+      <span class="progreso-texto" id="progreso-texto"></span>
+      <button type="button" class="btn-icono" data-acc="pista" data-t-aria="pista" data-t-title="pista">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V16h8v-1.3A7 7 0 0012 2z"/></svg></button>
+      <button type="button" class="btn-icono" data-acc="referencia" data-t-aria="referencia" data-t-title="referencia">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a10 10 0 110-20c5.5 0 10 4 10 9a5 5 0 01-5 5h-1.8a1.7 1.7 0 00-1.2 2.9A1.8 1.8 0 0112 22z"/><circle cx="7.5" cy="10.5" r="1.3"/><circle cx="12" cy="7.5" r="1.3"/><circle cx="16.5" cy="10.5" r="1.3"/></svg></button>
+    </header>
+    <div class="zona" id="zona">
+      <canvas id="lienzo" aria-label=""></canvas>
+      <div class="preparando" id="preparando" hidden><div class="rueda" aria-hidden="true"></div><span data-t="preparando"></span></div>
+      <div class="zoom">
+        <button type="button" data-acc="alejar" data-t-aria="alejar">−</button>
+        <button type="button" data-acc="ajustar" data-t-aria="ajustar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 00-2 2v3M21 8V5a2 2 0 00-2-2h-3M3 16v3a2 2 0 002 2h3M16 21h3a2 2 0 002-2v-3"/></svg></button>
+        <button type="button" data-acc="acercar" data-t-aria="acercar">+</button>
+      </div>
+      <canvas id="confeti" class="confeti" aria-hidden="true"></canvas>
+      <p class="mensaje" id="mensaje" role="status" aria-live="polite"></p>
+    </div>
+    <div class="paleta" id="paleta" role="radiogroup"></div>
+  </section>
+</main>
+
+<dialog id="modal" class="modal"></dialog>
+
+<script src="demo.js"></script>
+<script src="nucleo.js"></script>
+<script src="catalogo.js"></script>
+<script src="juego.js"></script>
+</body>
+</html>
