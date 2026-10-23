@@ -185,10 +185,70 @@
   // ---------- Vistas y diálogos ----------
   const VISTAS = ['biblioteca', 'libro', 'juego'];
   let vista = 'biblioteca', libroActual = null;
+  // Cada lista recuerda dónde estaba: al volver de un dibujo, el libro sigue en el mismo sitio.
+  const app = $('#app'), posiciones = {};
   function mostrar(v) {
+    if (vista !== 'juego') posiciones[vista] = app.scrollTop;
     vista = v;
     for (const n of VISTAS) $(`#v-${n}`).hidden = n !== v;
     document.body.classList.toggle('en-juego', v === 'juego');
+    app.scrollTop = v === 'juego' ? 0 : posiciones[v] || 0;
+  }
+
+  // ---------- Desplazamiento táctil propio ----------
+  // El SDK de YouTube Playables desactiva el desplazamiento táctil del navegador (pone touch-action: none
+  // en <body>), así que con el dedo las listas se desplazan con este código, con inercia, igual en Android,
+  // iOS y web. El ratón y la rueda siguen usando el desplazamiento nativo.
+  let suprimirClic = 0;
+  document.addEventListener('click', (e) => {
+    // Un arrastre no debe acabar abriendo el libro o el dibujo sobre el que se levantó el dedo.
+    if (performance.now() < suprimirClic) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  const inercias = new Set();
+  function desplazable(el, ignorar = null) {
+    let ini = null, ultimo = null, vx = 0, vy = 0, arrastre = false, anim = 0;
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' || (ignorar && e.target.closest(ignorar))) return;
+      cancelAnimationFrame(anim);
+      ini = { id: e.pointerId, x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop };
+      ultimo = { x: e.clientX, y: e.clientY, t: performance.now() };
+      vx = vy = 0; arrastre = false;
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!ini || e.pointerId !== ini.id) return;
+      const dx = e.clientX - ini.x, dy = e.clientY - ini.y;
+      if (!arrastre) {
+        if (Math.hypot(dx, dy) < 8) return;
+        arrastre = true;
+        try { el.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
+      }
+      el.scrollLeft = ini.sl - dx;
+      el.scrollTop = ini.st - dy;
+      const t = performance.now(), dt = Math.max(8, t - ultimo.t);
+      vx = 0.7 * ((ultimo.x - e.clientX) / dt) + 0.3 * vx;
+      vy = 0.7 * ((ultimo.y - e.clientY) / dt) + 0.3 * vy;
+      ultimo = { x: e.clientX, y: e.clientY, t };
+    });
+    const soltar = (e) => {
+      if (!ini || e.pointerId !== ini.id) return;
+      ini = null;
+      if (!arrastre) return;
+      suprimirClic = performance.now() + 350;
+      // Si el dedo se quedó quieto antes de soltar, no hay inercia.
+      if (performance.now() - ultimo.t > 120) return;
+      let px = vx * 16, py = vy * 16;
+      const paso = () => {
+        if (J.pausado) return;
+        px *= 0.94; py *= 0.94;
+        el.scrollLeft += px; el.scrollTop += py;
+        if (Math.abs(px) > 0.4 || Math.abs(py) > 0.4) anim = requestAnimationFrame(paso); else inercias.delete(detener);
+      };
+      const detener = () => cancelAnimationFrame(anim);
+      inercias.add(detener);
+      anim = requestAnimationFrame(paso);
+    };
+    el.addEventListener('pointerup', soltar);
+    el.addEventListener('pointercancel', soltar);
   }
   const modal = $('#modal');
   function abrirModal(html, clase = '') {
@@ -198,6 +258,9 @@
   }
   const cerrarModal = () => { if (modal.open) modal.close(); };
   modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModal(); });
+  desplazable(app, '#v-juego');
+  desplazable($('#paleta'));
+  desplazable(modal);
 
   function aplicarTextos() {
     document.documentElement.lang = idioma;
@@ -240,9 +303,9 @@
   function abrirLibro(id) {
     libroActual = CAT.libros.find((l) => l.id === id);
     if (!libroActual) return;
+    posiciones.libro = 0;
     renderLibro();
     mostrar('libro');
-    window.scrollTo(0, 0);
   }
   function elegirNivel(l, n) {
     const k = clave(l, n), curso = G.curso[k], hecha = G.hechas[k];
@@ -708,6 +771,7 @@
   // ---------- Pausa y reanudación (requisito de integración 6): se detiene todo ----------
   function pausar() {
     J.pausado = true;
+    for (const detener of inercias) detener();
     cancelAnimationFrame(J.anim);
     cancelAnimationFrame(J.animConfeti);
     Sonido.pausar(true);
